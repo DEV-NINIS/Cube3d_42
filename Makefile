@@ -13,6 +13,8 @@ SRC = src/parsing/check_args.c \
 	src/parsing/maintest.c \
 	src/parsing/read_cub.c \
 	src/parsing/parse_cube.c \
+	src/parsing/validate_configuration.c \
+	src/parsing/validate_map.c \
 	src/get_next_line/get_next_line_utils.c \
 	src/get_next_line/get_next_line.c
 	
@@ -26,11 +28,11 @@ compile_libft:
 
 # Compilation de l'exécutable
 $(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) -g
 
 # Compilation des fichiers objets
 %.o: %.c
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@ -g
 
 # Nettoyage des fichiers générés
 clean:
