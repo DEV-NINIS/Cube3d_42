@@ -75,7 +75,7 @@ int validate_map(char **map_lines, int count, t_cub *cub)
         for (int j = 0; map_lines[i][j]; j++)
         {
             if (!is_valid_map_char(map_lines[i][j]))
-                return (0);
+                return (printf("return map is -> 0 and map char is %c and index is -> %d -> %d\n", map_lines[i][j], i, j), 0);
 
             if (is_player_char(map_lines[i][j]))
             {
@@ -88,7 +88,7 @@ int validate_map(char **map_lines, int count, t_cub *cub)
     }
 
     if (players != 1)
-        return (0);
+        return (printf("return map is -> 1"), 0);
 
     /* 2) Normaliser */
     cub->map_height = count;
