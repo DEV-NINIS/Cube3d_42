@@ -2,6 +2,7 @@
 
 static int is_valid_map_char(char c)
 {
+    if (c == '\0' || c == '\n') return (1);  // Accepter le caractère nul
     return (c == '0' || c == '1' || c == ' ' ||
             c == 'N' || c == 'S' || c == 'E' || c == 'W');
 }
@@ -38,6 +39,7 @@ static int flood_fill(char **map, int h, int w, int y, int x, int **visited)
 /* --------------------------------------------------------- */
 /*                    NORMALISER LA MAP                       */
 /* --------------------------------------------------------- */
+
 static char **normalize_map(char **map_lines, int count, int *outW)
 {
     int maxlen = 0;
@@ -65,6 +67,7 @@ static char **normalize_map(char **map_lines, int count, int *outW)
 /* --------------------------------------------------------- */
 /*                   VALIDATE MAP                            */
 /* --------------------------------------------------------- */
+
 int validate_map(char **map_lines, int count, t_cub *cub)
 {
     int players = 0;

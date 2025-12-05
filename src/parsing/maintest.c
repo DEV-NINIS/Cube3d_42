@@ -19,6 +19,7 @@ int	main(int argc, char **argv)
 		if (cub.texture_paths[i])
 			printf("  Texture %d: %s\n", i, cub.texture_paths[i]);
 	}
+	printf("color->%d\n", cub.ceiling_color);
 	// printf("Couleurs: F=%d, C=%d\n", cub.floor_color, cub.ceiling_color);
 	// printf("Map: %dx%d\n", cub.map_width, cub.map_height);
 	// Libérer la mémoire ici plus tard

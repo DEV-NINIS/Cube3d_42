@@ -72,6 +72,7 @@ static char *extract_id(char *line, char *idbuf)
 /* --------------------------------------------------------- */
 /* validate_configuration implementation                    */
 /* --------------------------------------------------------- */
+
 int validate_configuration(char **config_lines, int count, t_cub *cub)
 {
     int have_no = 0, have_so = 0, have_we = 0, have_ea = 0;
@@ -88,13 +89,13 @@ int validate_configuration(char **config_lines, int count, t_cub *cub)
         char *line = config_lines[i];
         if (!line) continue;
         char *p = skip_ws(line);
-        if (*p == '\0') continue; /* skip blank lines (shouldn't appear here but safe) */
+        if (*p == '\0') continue; /* skip blank lines */
 
         /* extract identifier */
         char id[3] = {'\0','\0','\0'};
         char *after = extract_id(p, id);
         after = skip_ws(after);
-        if (id[0] == '\0') return (printf("return is -> 0\n"), 0); /* invalid line */
+        if (id[0] == '\0') return (printf("Error\nInvalid configuration line: %s\n", line), 0);
 
         /* TEXTURE LINES: NO, SO, WE, EA */
         if (is_tex_id(id))
@@ -153,43 +154,71 @@ int validate_configuration(char **config_lines, int count, t_cub *cub)
             if (have_no && have_so && have_we && have_ea && have_f && have_c)
                 return 1;
         }
-        /* FLOOR / CEILING: F / C */
+        /* FLOOR / CEILING: F / C - AMÉLIORATION ICI */
         else if (!ft_strcmp(id, "F") || !ft_strcmp(id, "C"))
         {
-            if (*after == '\0') return (printf("return is -> 0\n"), 0); /* missing rgb */
+            if (*after == '\0') {
+                printf("Error\nMissing color values for %s\n", id);
+                return 0;
+            }
+            
             char *rgbstr = ft_strdup(after);
-            if (!rgbstr) return (printf("return is -> 10\n"), 0);
+            if (!rgbstr) {
+                printf("Error\nMemory allocation failed\n");
+                return 0;
+            }
+            
+            /* TRIM seulement la fin, pas le début (déjà géré par skip_ws) */
             rtrim(rgbstr);
+            
             int color = parse_rgb_str(rgbstr);
             free(rgbstr);
-            if (color < 0) return (printf("return is -> 11\n"), 0);
+            
+            if (color < 0) {
+                /* parse_rgb_str a déjà affiché l'erreur spécifique */
+                return 0;
+            }
 
+            /* Vérifier les doublons */
             if (!ft_strcmp(id, "F"))
             {
-                if (have_f) return (printf("return is -> 12\n"), 0);
+                if (have_f) {
+                    printf("Error\nDuplicate floor color (F) definition\n");
+                    return 0;
+                }
                 cub->floor_color = color;
                 have_f = 1;
             }
             else
             {
-                if (have_c) return (printf("return is -> 13\n"), 0);
+                if (have_c) {
+                    printf("Error\nDuplicate ceiling color (C) definition\n");
+                    return 0;
+                }
                 cub->ceiling_color = color;
                 have_c = 1;
             }
-            if (have_no && have_so && have_we && have_ea && have_f && have_c)
-                return 1;
         }
         else
         {
             /* unknown identifier -> invalid configuration */
-            return (printf("return is -> 14\n"), 0);
+            printf("Error\nUnknown identifier '%s' in line: %s\n", id, line);
+            return 0;
         }
     }
 
-    /* must have all six */
+    /* Vérification finale que TOUT est présent */
+    if (!have_no) printf("Error\nMissing texture NO\n");
+    if (!have_so) printf("Error\nMissing texture SO\n");
+    if (!have_we) printf("Error\nMissing texture WE\n");
+    if (!have_ea) printf("Error\nMissing texture EA\n");
+    if (!have_f) printf("Error\nMissing floor color (F)\n");
+    if (!have_c) printf("Error\nMissing ceiling color (C)\n");
+
     if (!(have_no && have_so && have_we && have_ea && have_f && have_c))
-        return (printf("return is -> 0\n"), 0);
+        return 0;
 
     return 1;
 }
+
 

@@ -13,6 +13,7 @@ SRC = src/parsing/check_args.c \
 	src/parsing/maintest.c \
 	src/parsing/read_cub.c \
 	src/parsing/parse_cube.c \
+	src/parsing/parse_colors.c \
 	src/parsing/validate_configuration.c \
 	src/parsing/validate_map.c \
 	src/get_next_line/get_next_line_utils.c \

@@ -50,14 +50,18 @@ void	free_separation(t_separation *sep);
 /* Fonctions de validation */
 int		validate_configuration(char **config_lines, int count, t_cub *cub);
 int		validate_map(char **map_lines, int count, t_cub *cub);
+int		parse_color_line(t_cub *cub, const char *line, int line_num);
+int		parse_texture_line(t_cub *cub, const char *line, int line_num);
+int 	check_begin_map_ok(char **lines, int line_count,
+                            char ***config, char ***map, t_separation *sep);
+int		is_config_line(const char *line);
+int		validate_configuration_color(char **config_lines, int count, t_cub *cub);
+
+
 
 // utils
 void	*ft_realloc(void *ptr, size_t old_size, size_t new_size);
 int     ft_strcmp(const char *s1, const char *s2);
-
-
-
-
 
 #endif
 
