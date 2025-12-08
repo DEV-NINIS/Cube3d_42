@@ -245,6 +245,8 @@ int	parse_cub_file(const char *filename, t_cub *cub)
 	int		line_count;
 	t_separation	sep;
 
+    if (!is_cub_file(filename))
+        return (printf("Error\nInvalid file \n"), 0);
 	// Initialisation de la structure cub (IMPORTANT)
 	ft_memset(cub, 0, sizeof(t_cub));
 	cub->floor_color = -1;    // -1 signifie non défini
@@ -296,5 +298,7 @@ int	parse_cub_file(const char *filename, t_cub *cub)
 	}
 	
 	free_string_array(lines);
+    
+    print_cub_info(cub);
 	return (1);
 }

@@ -57,6 +57,11 @@ int 	check_begin_map_ok(char **lines, int line_count,
 int		is_config_line(const char *line);
 int		validate_configuration_color(char **config_lines, int count, t_cub *cub);
 
+int	    is_cub_file(const char *filename);
+void	print_cub_info(t_cub *cub);
+void    free_cub(t_cub *cub);
+
+
 
 
 // utils
