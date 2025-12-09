@@ -202,11 +202,11 @@ int	validate_configuration_color(char **config_lines, int count, t_cub *cub)
 
 	have_f = 0;
 	have_c = 0;
-	line_num = 1;
+	line_num = 0;
 	cub->floor_color = -1;
 	cub->ceiling_color = -1;
 	i = -1;
-	while (++i < count)
+	while (++i < count && ++line_num)
 	{
 		char	*trimmed;
 
@@ -221,13 +221,9 @@ int	validate_configuration_color(char **config_lines, int count, t_cub *cub)
 		if (trimmed[0] == 'F' || trimmed[0] == 'C')
 		{
 			if (!process_config_line(trimmed, cub, &have_f, &have_c, line_num))
-			{
-				free(trimmed);
-				return (0);
-			}
+				return (free(trimmed), 0);
 		}
 		free(trimmed);
-		line_num++;
 	}
 	return (check_missing_colors(have_f, have_c));
 }

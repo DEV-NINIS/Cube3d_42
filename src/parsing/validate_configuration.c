@@ -33,28 +33,38 @@ static int pack_rgb(int r, int g, int b)
 static int parse_rgb_str(char *s)
 {
     long v;
-    char *p = s;
+    char *p;
     int comps[3];
-    for (int i = 0; i < 3; ++i)
+    int i;
+
+    p = s;
+    i = 0;
+    while (i < 3)
     {
         p = skip_ws(p);
-        if (!*p) return -1;
+        if (!*p)
+            return (-1);
         /* parse integer */
         v = ft_atoi(p);
-        if (v < 0 || v > 255) return -1;
+        if (v < 0 || v > 255)
+            return (-1);
         comps[i] = (int)v;
         /* advance p past digits we just consumed */
-        while (*p && isdigit((unsigned char)*p)) p++;
+        while (*p && ft_isdigit((unsigned char)*p))
+            p++;
         p = skip_ws(p);
         if (i < 2)
         {
-            if (*p != ',') return -1;
+            if (*p != ',')
+                return (-1);
             p++; /* skip comma */
         }
+        i++;
     }
     /* after third component allow only spaces */
     p = skip_ws(p);
-    if (*p != '\0') return -1;
+    if (*p != '\0')
+        return -1;
     return pack_rgb(comps[0], comps[1], comps[2]);
 }
 
@@ -63,15 +73,11 @@ static char *extract_id(char *line, char *idbuf)
 {
     char *p = skip_ws(line);
     int i = 0;
-    while (*p && !isspace((unsigned char)*p) && i < 2)
+    while (*p && !ft_isspace((unsigned char)*p) && i < 2)
         idbuf[i++] = *p++;
     idbuf[i] = '\0';
     return p;
 }
-
-/* --------------------------------------------------------- */
-/* validate_configuration implementation                    */
-/* --------------------------------------------------------- */
 
 int validate_configuration(char **config_lines, int count, t_cub *cub)
 {
@@ -132,89 +138,68 @@ int validate_configuration(char **config_lines, int count, t_cub *cub)
 
             if (!ft_strcmp(id, "NO"))
             {
-                if (cub->texture_paths[0]) { free(path); return (printf("return is -> 6\n"), 0); }
-                cub->texture_paths[0] = path; have_no = 1;
+                if (cub->texture_paths[0])
+                    return (free(path), printf("return is -> 6\n"), 0);
+                cub->texture_paths[0] = path;
+                have_no = 1;
             }
             else if (!ft_strcmp(id, "SO"))
             {
-                if (cub->texture_paths[1]) { free(path); return (printf("return is -> 7\n"), 0); }
-                cub->texture_paths[1] = path; have_so = 1;
+                if (cub->texture_paths[1]) 
+                    return (free(path), printf("return is -> 7\n"), 0);
+                cub->texture_paths[1] = path;
+                have_so = 1;
             }
             else if (!ft_strcmp(id, "WE"))
             {
-                if (cub->texture_paths[2]) { free(path); return (printf("return is -> 8\n"), 0); }
-                cub->texture_paths[2] = path; have_we = 1;
+                if (cub->texture_paths[2])
+                    return (free(path), printf("return is -> 8\n"), 0);
+                cub->texture_paths[2] = path;
+                have_we = 1;
             }
             else /* EA */
             {
-                if (cub->texture_paths[3]) { free(path); return (printf("return is -> 9\n"), 0); }
-                cub->texture_paths[3] = path; have_ea = 1;
+                if (cub->texture_paths[3]) 
+                    return (free(path), printf("return is -> 9\n"), 0);
+                cub->texture_paths[3] = path;
+                have_ea = 1;
             }
-
             if (have_no && have_so && have_we && have_ea && have_f && have_c)
                 return 1;
         }
         /* FLOOR / CEILING: F / C - AMÉLIORATION ICI */
         else if (!ft_strcmp(id, "F") || !ft_strcmp(id, "C"))
         {
-            if (*after == '\0') {
-                printf("Error\nMissing color values for %s\n", id);
-                return 0;
-            }
-            
+            if (*after == '\0')
+                return (printf("Error\nMissing color values for %s\n", id), 0);
             char *rgbstr = ft_strdup(after);
-            if (!rgbstr) {
-                printf("Error\nMemory allocation failed\n");
-                return 0;
-            }
-            
+            if (!rgbstr)
+                return (printf("Error\nMemory allocation failed\n"), 0);
             /* TRIM seulement la fin, pas le début (déjà géré par skip_ws) */
             rtrim(rgbstr);
-            
             int color = parse_rgb_str(rgbstr);
             free(rgbstr);
-            
-            if (color < 0) {
-                /* parse_rgb_str a déjà affiché l'erreur spécifique */
+            if (color < 0)
                 return 0;
-            }
-
             /* Vérifier les doublons */
             if (!ft_strcmp(id, "F"))
             {
-                if (have_f) {
-                    printf("Error\nDuplicate floor color (F) definition\n");
-                    return 0;
-                }
+                if (have_f)
+                    return (printf("Error\nDuplicate floor color (F) definition\n"), 0);
                 cub->floor_color = color;
                 have_f = 1;
             }
             else
             {
-                if (have_c) {
-                    printf("Error\nDuplicate ceiling color (C) definition\n");
-                    return 0;
-                }
+                if (have_c)
+                    return (printf("Error\nDuplicate ceiling color (C) definition\n"), 0);
                 cub->ceiling_color = color;
                 have_c = 1;
             }
         }
         else
-        {
-            /* unknown identifier -> invalid configuration */
-            printf("Error\nUnknown identifier '%s' in line: %s\n", id, line);
-            return 0;
-        }
+            return (printf("Error\nUnknown identifier '%s' in line: %s\n", id, line), 0);
     }
-
-    /* Vérification finale que TOUT est présent */
-    if (!have_no) printf("Error\nMissing texture NO\n");
-    if (!have_so) printf("Error\nMissing texture SO\n");
-    if (!have_we) printf("Error\nMissing texture WE\n");
-    if (!have_ea) printf("Error\nMissing texture EA\n");
-    if (!have_f) printf("Error\nMissing floor color (F)\n");
-    if (!have_c) printf("Error\nMissing ceiling color (C)\n");
-
     if (!(have_no && have_so && have_we && have_ea && have_f && have_c))
         return 0;
 

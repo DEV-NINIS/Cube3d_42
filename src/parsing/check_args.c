@@ -32,21 +32,18 @@ int check_arguments(int argc, char **argv)
 {
     int fd;
 
-    // Vérifier le nombre d'arguments
     if (argc != 2)
         return print_error("Invalid arguments");
 
-    // Vérifier extension du fichier
     if (!has_cub_extension(argv[1]))
         return print_error("File is not a .cub");
 
-    // Vérifier si le fichier peut être ouvert
     fd = open(argv[1], O_RDONLY);
     if (fd == -1)
         return print_error("Cannot open .cub file");
 
     close(fd);
-    return (1); // OK ✔
+    return (1);
 }
 
 int    is_cub_file(const char *filename)
@@ -67,20 +64,16 @@ void    free_cub(t_cub *cub)
 {
     int i;
 
-    if (!cub)
-        return;
-
-    /* Libérer les textures */
-    for (i = 0; i < MAX_TEXTURES; i++)
+	i = 0;
+    while (i < MAX_TEXTURES)
     {
         if (cub->texture_paths[i])
         {
             free(cub->texture_paths[i]);
             cub->texture_paths[i] = NULL;
         }
+		i++;
     }
-
-    /* Libérer la map */
     if (cub->map)
     {
         i = 0;

@@ -1,6 +1,6 @@
 # Compilateur et options
 CXX = cc
-CXXFLAGS = -Wall -Wextra -O2
+CXXFLAGS = -Wall -Wextra -Werror	
 LDFLAGS = -L "./src/LIBFT" -lft
 NAME_LIBFT = src/LIBFT
 

@@ -33,18 +33,17 @@ typedef struct s_cub
 	char	player_dir;
 }	t_cub;
 
-
 // Check les arguments
 int     check_arguments(int argc, char **argv);
-
 /* Fonctions de lecture */
 char	**read_cub_file(const char *filename, int *line_count);
 void	free_string_array(char **array);
 
 /* Fonctions de parsing */
 int		parse_cub_file(const char *filename, t_cub *cub);
+
 int		separate_config_and_map(char **lines, int line_count,
-			char ***config, char ***map, t_separation *sep);
+                            char ***map, t_separation *sep);
 void	free_separation(t_separation *sep);
 
 /* Fonctions de validation */
@@ -53,7 +52,7 @@ int		validate_map(char **map_lines, int count, t_cub *cub);
 int		parse_color_line(t_cub *cub, const char *line, int line_num);
 int		parse_texture_line(t_cub *cub, const char *line, int line_num);
 int 	check_begin_map_ok(char **lines, int line_count,
-                            char ***config, char ***map, t_separation *sep);
+                            char ***map, t_separation *sep);
 int		is_config_line(const char *line);
 int		validate_configuration_color(char **config_lines, int count, t_cub *cub);
 

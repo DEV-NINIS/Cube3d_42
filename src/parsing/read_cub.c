@@ -15,32 +15,24 @@ char	**read_cub_file(const char *filename, int *line_count)
 	count = 0;
 	lines = malloc(sizeof(char *) * capacity);
 	if (!lines)
-	{
-		close(fd);
-		return (NULL);
-	}
+		return (close(fd), NULL);
 	line = get_next_line(fd);
 	while (line != NULL)
 	{
-		// Si le tableau est plein, on l'agrandit
 		if (count >= capacity - 1)
 		{
 			capacity *= 2;
 			lines = ft_realloc(lines, sizeof(char *) * capacity / 2, 
 					sizeof(char *) * capacity);
 			if (!lines)
-			{
-				close(fd);
-				return (NULL);
-			}
+				return (close(fd), NULL);
 		}
 		lines[count++] = line;
 		line = get_next_line(fd);
 	}
 	lines[count] = NULL;
-	close(fd);
 	*line_count = count;
-	return (lines);
+	return (close(fd), lines);
 }
 
 /*
@@ -91,7 +83,6 @@ void	*ft_realloc(void *ptr, size_t old_size, size_t new_size)
 		dst[i] = src[i];
 		i++;
 	}
-	free(ptr);
-	return (new_ptr);
+	return (free(ptr), new_ptr);
 }
 
