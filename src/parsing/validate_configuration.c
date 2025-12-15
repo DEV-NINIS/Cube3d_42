@@ -1,209 +1,112 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   validate_configuration.c                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ael-fari <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/12/15 18:33:35 by ael-fari          #+#    #+#             */
+/*   Updated: 2025/12/15 18:33:36 by ael-fari         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../../includes/cube3d.h"
 
-static char *skip_ws(char *s)
+int	config_complete(int *flags)
 {
-    while (s && *s && (unsigned char)*s <= ' ')
-        s++;
-    return s;
+	return (flags[0] && flags[1] && flags[2] && flags[3] && flags[4]
+		&& flags[5]);
 }
 
-/* trim trailing spaces in place */
-static void rtrim(char *s)
+int	parse_texture(char *id, char *after, t_cub *cub, int *flags)
 {
-    int i = (int)ft_strlen(s) - 1;
-    while (i >= 0 && (unsigned char)s[i] <= ' ')
-        s[i--] = '\0';
+	char	*path;
+	int		idx;
+	int		len;
+
+	if (*after == '\0')
+		return (0);
+	path = ft_strdup(after);
+	if (!path)
+		return (0);
+	rtrim(path);
+	len = ft_strlen(path);
+	if (len < 4 || ft_strcmp(path + len - 4, ".xpm") != 0)
+		return (free(path), 0);
+	if (access(path, R_OK) != 0)
+		return (free(path), 0);
+	idx = (id[0] == 'N') * 0 + (id[0] == 'S') * 1 + (id[0] == 'W') * 2
+		+ (id[0] == 'E') * 3;
+	if (cub->texture_paths[idx])
+		return (free(path), 0);
+	cub->texture_paths[idx] = path;
+	flags[idx] = 1;
+	return (1);
 }
 
-/* compare identifier (NO,SO,WE,EA,F,C) - case sensitive */
-static int is_tex_id(const char *id)
+int	parse_color(char *id, char *after, t_cub *cub, int *flags)
 {
-    return (!ft_strcmp(id, "NO") || !ft_strcmp(id, "SO")
-         || !ft_strcmp(id, "WE") || !ft_strcmp(id, "EA"));
+	int	color;
+	int	idx;
+
+	if (*after == '\0')
+		return (0);
+	color = parse_rgb_str(after);
+	if (color < 0)
+		return (0);
+	if (id[0] == 'F')
+		idx = 4;
+	else
+		idx = 5;
+	if (flags[idx])
+		return (0);
+	if (id[0] == 'F')
+		cub->floor_color = color;
+	else
+		cub->ceiling_color = color;
+	flags[idx] = 1;
+	return (1);
 }
 
-/* pack rgb into int */
-static int pack_rgb(int r, int g, int b)
+int	handle_config_line(char *line, t_cub *cub, int *flags)
 {
-    return ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+	char	id[3];
+	char	*p;
+	char	*after;
+
+	p = skip_ws(line);
+	if (*p == '\0')
+		return (1);
+	after = extract_id(p, id);
+	if (!id[0])
+		return (0);
+	after = skip_ws(after);
+	if (is_tex_id(id))
+		return (parse_texture(id, after, cub, flags));
+	if (!ft_strcmp(id, "F") || !ft_strcmp(id, "C"))
+		return (parse_color(id, after, cub, flags));
+	return (0);
 }
 
-/* parse rgb from a string like "  220 , 100 , 0  " */
-/* returns -1 on error */
-static int parse_rgb_str(char *s)
+int	validate_configuration(char **config_lines, int count, t_cub *cub)
 {
-    long v;
-    char *p;
-    int comps[3];
-    int i;
+	int	i;
+	int	flags[6];
 
-    p = s;
-    i = 0;
-    while (i < 3)
-    {
-        p = skip_ws(p);
-        if (!*p)
-            return (-1);
-        /* parse integer */
-        v = ft_atoi(p);
-        if (v < 0 || v > 255)
-            return (-1);
-        comps[i] = (int)v;
-        /* advance p past digits we just consumed */
-        while (*p && ft_isdigit((unsigned char)*p))
-            p++;
-        p = skip_ws(p);
-        if (i < 2)
-        {
-            if (*p != ',')
-                return (-1);
-            p++; /* skip comma */
-        }
-        i++;
-    }
-    /* after third component allow only spaces */
-    p = skip_ws(p);
-    if (*p != '\0')
-        return -1;
-    return pack_rgb(comps[0], comps[1], comps[2]);
+	i = 0;
+	while (i < 6)
+		flags[i++] = 0;
+	init_cub_config(cub);
+	i = 0;
+	while (i < count)
+	{
+		if (!handle_config_line(config_lines[i], cub, flags))
+			return (0);
+		if (config_complete(flags))
+			return (1);
+		i++;
+	}
+	if (!config_complete(flags))
+		return (0);
+	return (1);
 }
-
-/* extract next token (identifier) from line: copy to idbuf (size >=3). returns pointer after token */
-static char *extract_id(char *line, char *idbuf)
-{
-    char *p = skip_ws(line);
-    int i = 0;
-    while (*p && !ft_isspace((unsigned char)*p) && i < 2)
-        idbuf[i++] = *p++;
-    idbuf[i] = '\0';
-    return p;
-}
-
-int validate_configuration(char **config_lines, int count, t_cub *cub)
-{
-    int have_no = 0, have_so = 0, have_we = 0, have_ea = 0;
-    int have_f = 0, have_c = 0;
-
-    /* init cub fields to safe defaults */
-    for (int i = 0; i < MAX_TEXTURES; ++i)
-        cub->texture_paths[i] = NULL;
-    cub->floor_color = -1;
-    cub->ceiling_color = -1;
-
-    for (int i = 0; i < count; ++i)
-    {
-        char *line = config_lines[i];
-        if (!line) continue;
-        char *p = skip_ws(line);
-        if (*p == '\0') continue; /* skip blank lines */
-
-        /* extract identifier */
-        char id[3] = {'\0','\0','\0'};
-        char *after = extract_id(p, id);
-        after = skip_ws(after);
-        if (id[0] == '\0') return (printf("Error\nInvalid configuration line: %s\n", line), 0);
-
-        /* TEXTURE LINES: NO, SO, WE, EA */
-        if (is_tex_id(id))
-        {
-            /* rest of line is the path (no extra tokens allowed) */
-            if (*after == '\0') return (printf("return is -> 1\n"), 0); /* path missing */
-            /* copy rest and trim trailing spaces */
-            char *path = ft_strdup(after);
-            if (!path) return (printf("return is -> 1\n"), 0);
-            rtrim(path);
-            if (path[0] == '\0') { free(path); return (printf("return is -> 2\n"), 0); }
-
-            /* forbid spaces inside path (simpler and safer) */
-            for (char *q = path; *q; ++q)
-            {
-                if ((unsigned char)*q <= ' ') { free(path); return (printf("return is -> 3\n"), 0); }
-            }
-
-            /* check extension .xpm */
-            int L = (int)ft_strlen(path);
-            if (L < 4 || ft_strcmp(path + (L - 4), ".xpm") != 0)
-            {
-                free(path);
-                return (printf("return is -> 4\n"), 0);
-            }
-            /* check file readable */
-            if (access(path, R_OK) != 0)
-            {
-                printf("path is -> %s\n", path);
-                /* fichier manquant ou non lisible -> considérer comme erreur de configuration */
-                free(path);
-                return (printf("return is -> 5\n"), 0);
-            }
-
-            if (!ft_strcmp(id, "NO"))
-            {
-                if (cub->texture_paths[0])
-                    return (free(path), printf("return is -> 6\n"), 0);
-                cub->texture_paths[0] = path;
-                have_no = 1;
-            }
-            else if (!ft_strcmp(id, "SO"))
-            {
-                if (cub->texture_paths[1]) 
-                    return (free(path), printf("return is -> 7\n"), 0);
-                cub->texture_paths[1] = path;
-                have_so = 1;
-            }
-            else if (!ft_strcmp(id, "WE"))
-            {
-                if (cub->texture_paths[2])
-                    return (free(path), printf("return is -> 8\n"), 0);
-                cub->texture_paths[2] = path;
-                have_we = 1;
-            }
-            else /* EA */
-            {
-                if (cub->texture_paths[3]) 
-                    return (free(path), printf("return is -> 9\n"), 0);
-                cub->texture_paths[3] = path;
-                have_ea = 1;
-            }
-            if (have_no && have_so && have_we && have_ea && have_f && have_c)
-                return 1;
-        }
-        /* FLOOR / CEILING: F / C - AMÉLIORATION ICI */
-        else if (!ft_strcmp(id, "F") || !ft_strcmp(id, "C"))
-        {
-            if (*after == '\0')
-                return (printf("Error\nMissing color values for %s\n", id), 0);
-            char *rgbstr = ft_strdup(after);
-            if (!rgbstr)
-                return (printf("Error\nMemory allocation failed\n"), 0);
-            /* TRIM seulement la fin, pas le début (déjà géré par skip_ws) */
-            rtrim(rgbstr);
-            int color = parse_rgb_str(rgbstr);
-            free(rgbstr);
-            if (color < 0)
-                return 0;
-            /* Vérifier les doublons */
-            if (!ft_strcmp(id, "F"))
-            {
-                if (have_f)
-                    return (printf("Error\nDuplicate floor color (F) definition\n"), 0);
-                cub->floor_color = color;
-                have_f = 1;
-            }
-            else
-            {
-                if (have_c)
-                    return (printf("Error\nDuplicate ceiling color (C) definition\n"), 0);
-                cub->ceiling_color = color;
-                have_c = 1;
-            }
-        }
-        else
-            return (printf("Error\nUnknown identifier '%s' in line: %s\n", id, line), 0);
-    }
-    if (!(have_no && have_so && have_we && have_ea && have_f && have_c))
-        return 0;
-
-    return 1;
-}
-
-

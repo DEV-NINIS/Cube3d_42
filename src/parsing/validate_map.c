@@ -1,124 +1,95 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   validate_map.c                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ael-fari <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/12/15 18:33:45 by ael-fari          #+#    #+#             */
+/*   Updated: 2025/12/15 18:33:46 by ael-fari         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../../includes/cube3d.h"
 
-static int is_valid_map_char(char c)
+int	check_map_closed(t_cub *cub, int **visited)
 {
-    if (c == '\0' || c == '\n') return (1);  // Accepter le caractère nul
-    return (c == '0' || c == '1' || c == ' ' ||
-            c == 'N' || c == 'S' || c == 'E' || c == 'W');
+	t_ff	ff;
+	int		i;
+
+	ff.map = cub->map;
+	ff.h = cub->map_height;
+	ff.w = cub->map_width;
+	ff.vis = visited;
+	if (!flood_fill(&ff, cub->player_y, cub->player_x))
+	{
+		i = 0;
+		while (i < cub->map_height)
+			free(visited[i++]);
+		free(visited);
+		return (0);
+	}
+	i = 0;
+	while (i < cub->map_height)
+		free(visited[i++]);
+	free(visited);
+	return (1);
 }
 
-static int is_player_char(char c)
+int	validate_map(char **lines, int count, t_cub *cub)
 {
-    return (c == 'N' || c == 'S' || c == 'E' || c == 'W');
+	int	**visited;
+
+	if (!check_map_chars_and_player(lines, count, cub))
+		return (printf("Error\nInvalid number of players\n"), 0);
+	if (!normalize_map_and_check(lines, count, cub))
+		return (printf("Error\nPlayer position out of bounds\n"), 0);
+	if (!allocate_visited(cub, &visited))
+		return (0);
+	if (!check_map_closed(cub, visited))
+		return (0);
+	return (1);
 }
 
-/* --------------------------------------------------------- */
-/*               FLOOD FILL POUR VERIFIER MAP FERMÉE         */
-/* --------------------------------------------------------- */
-static int flood_fill(char **map, int h, int w, int y, int x, int **visited)
+int	check_line_chars(char *line, int y, t_cub *cub, int *players)
 {
-    if (y < 0 || x < 0 || y >= h || x >= w)
-        return (0);
-    if (map[y][x] == ' ')
-        return (0);
-    if (visited[y][x])
-        return (1);
-    visited[y][x] = 1;
+	int	x;
+	int	valid;
 
-    if (map[y][x] == '1')
-        return (1);
-
-    return (
-        flood_fill(map, h, w, y - 1, x, visited) &&
-        flood_fill(map, h, w, y + 1, x, visited) &&
-        flood_fill(map, h, w, y, x - 1, visited) &&
-        flood_fill(map, h, w, y, x + 1, visited)
-    );
+	x = 0;
+	while (line[x])
+	{
+		valid = is_valid_map_char(line[x]);
+		if (!valid)
+			return (0);
+		if (is_player_char(line[x]))
+		{
+			cub->player_x = x;
+			cub->player_y = y;
+			cub->player_dir = line[x];
+			(*players)++;
+		}
+		x++;
+	}
+	return (1);
 }
 
-/* --------------------------------------------------------- */
-/*                    NORMALISER LA MAP                       */
-/* --------------------------------------------------------- */
-
-static char **normalize_map(char **map_lines, int count, int *outW)
+int	check_map_chars_and_player(char **lines, int count, t_cub *cub)
 {
-    int maxlen = 0;
-    for (int i = 0; i < count; i++)
-    {
-        int len = ft_strlen(map_lines[i]);
-        if (len > maxlen)
-            maxlen = len;
-    }
+	int	i;
+	int	players;
+	int	valid;
 
-    char **map = malloc(sizeof(char *) * (count + 1));
-    for (int i = 0; i < count; i++)
-    {
-        int len = ft_strlen(map_lines[i]);
-        map[i] = malloc(maxlen + 1);
-        ft_memset(map[i], ' ', maxlen);
-        ft_memcpy(map[i], map_lines[i], len);
-        map[i][maxlen] = '\0';
-    }
-    map[count] = NULL;
-    *outW = maxlen;
-    return map;
-}
-
-/* --------------------------------------------------------- */
-/*                   VALIDATE MAP                            */
-/* --------------------------------------------------------- */
-
-int validate_map(char **map_lines, int count, t_cub *cub)
-{
-    int players = 0;
-
-    /* 1) Check characters + player count */
-    for (int i = 0; i < count; i++)
-    {
-        for (int j = 0; map_lines[i][j]; j++)
-        {
-            if (!is_valid_map_char(map_lines[i][j]))
-                return (printf("return map is -> 0 and map char is %c and index is -> %d -> %d\n", map_lines[i][j], i, j), 0);
-
-            if (is_player_char(map_lines[i][j]))
-            {
-                players++;
-                cub->player_x = j;
-                cub->player_y = i;
-                cub->player_dir = map_lines[i][j];
-            }
-        }
-    }
-
-    if (players != 1)
-        return (printf("return map is -> 1"), 0);
-
-    /* 2) Normaliser */
-    cub->map_height = count;
-    cub->map = normalize_map(map_lines, count, &cub->map_width);
-
-    /* Remplacer player char par '0' */
-    cub->map[cub->player_y][cub->player_x] = '0';
-
-    /* 3) Flood fill */
-    int **visited = malloc(sizeof(int *) * cub->map_height);
-    for (int i = 0; i < cub->map_height; i++)
-    {
-        visited[i] = ft_calloc(cub->map_width, sizeof(int));
-    }
-
-    int result = flood_fill(
-        cub->map,
-        cub->map_height,
-        cub->map_width,
-        cub->player_y,
-        cub->player_x,
-        visited
-    );
-
-    for (int i = 0; i < cub->map_height; i++)
-        free(visited[i]);
-    free(visited);
-
-    return (result);
+	i = 0;
+	players = 0;
+	while (i < count)
+	{
+		valid = check_line_chars(lines[i], i, cub, &players);
+		if (!valid)
+			return (0);
+		i++;
+	}
+	if (players != 1)
+		return (0);
+	return (1);
 }

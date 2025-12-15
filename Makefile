@@ -1,68 +1,107 @@
-# Compilateur et options
-CXX = cc
-CXXFLAGS = -Wall -Wextra -Werror	
-LDFLAGS = -L "./src/LIBFT" -lft
-NAME_LIBFT = src/LIBFT
+NAME        = cub3D
 
+CC          = cc
+CFLAGS      = -Wall -Wextra -Werror
 
-# Nom de l'exécutable
-TARGET = cube3d
+# Dossiers
+SRC_DIR     = src
+PARSING_DIR = $(SRC_DIR)/parsing
+EXEC_DIR    = $(SRC_DIR)/exec
+GNL_DIR     = $(SRC_DIR)/get_next_line
+LIBFT_PATH  = $(SRC_DIR)/LIBFT
+INCLUDE_DIR = includes
+MLX_PATH    = $(INCLUDE_DIR)/mlx
 
-# Fichier source
-SRC = src/parsing/check_args.c \
-	src/parsing/maintest.c \
-	src/parsing/read_cub.c \
-	src/parsing/parse_cube.c \
-	src/parsing/parse_colors.c \
-	src/parsing/validate_configuration.c \
-	src/parsing/validate_map.c \
-	src/get_next_line/get_next_line_utils.c \
-	src/get_next_line/get_next_line.c
-	
-OBJ = $(SRC:.c=.o)
+# Libs
+LIBFT       = $(LIBFT_PATH)/libft.a
+MLX         = $(MLX_PATH)/libmlx.a
 
-# Règle par défaut
-all: compile_libft $(TARGET)
+# Includes
+CFLAGS     += -I$(INCLUDE_DIR) -I$(MLX_PATH) -I$(LIBFT_PATH)
 
-compile_libft:
-	$(MAKE) -C $(NAME_LIBFT)
+# Liens
+LDFLAGS     = -L$(LIBFT_PATH) -lft \
+              -L$(MLX_PATH) -lmlx \
+              -lXext -lX11 -lm -lbsd
 
-# Compilation de l'exécutable
-$(TARGET): $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) -g
+# Sources C
+SRC_PARSING = $(filter-out $(PARSING_DIR)/maintest.c $(PARSING_DIR)/parse_colors.c, \
+              $(wildcard $(PARSING_DIR)/*.c))
+SRC_EXEC    = $(wildcard $(EXEC_DIR)/*.c)
+SRC_GNL     = $(wildcard $(GNL_DIR)/*.c)
 
-# Compilation des fichiers objets
-%.o: %.c
-	$(CXX) $(CXXFLAGS) -c $< -o $@ -g
+SRC         = $(SRC_PARSING) $(SRC_EXEC) $(SRC_GNL) $(SRC_DIR)/main.c
 
-# Nettoyage des fichiers générés
+OBJDIR      = obj
+OBJ         = $(SRC:%.c=$(OBJDIR)/%.o)
+
+# Norm
+SRC_PATH    = $(SRC_DIR)
+
+# Couleurs
+GREEN       = \033[0;32m
+YELLOW      = \033[0;33m
+WHITE_BOLD  = \033[1;37m
+NC          = \033[0m
+
+all: $(NAME)
+	@printf "$(WHITE_BOLD)[OK] Compilation $(NAME) done$(NC)\n"
+
+$(NAME): $(LIBFT) $(MLX) $(OBJ)
+	@printf "$(GREEN)[OK] Creating executable $(NAME)$(NC)\n"
+	@$(CC) $(CFLAGS) $(OBJ) -o $(NAME) $(LDFLAGS) -g
+
+$(LIBFT):
+	@printf "[LIBFT]\n"
+	@$(MAKE) -C $(LIBFT_PATH)
+
+# --- MiniLibX : clone + compile si besoin ---------------------------------- #
+
+$(MLX):
+	@set -e; \
+	mkdir -p "$(INCLUDE_DIR)"; \
+	if [ ! -d "$(MLX_PATH)" ]; then \
+		printf "[MINILIBX]\n"; \
+		printf "⌛ Installing minilibx...\n"; \
+		git clone -q https://github.com/42Paris/minilibx-linux.git "$(MLX_PATH)"; \
+		printf "  └⚙️  Compiling minilibx...\n"; \
+		$(MAKE) -C "$(MLX_PATH)" > /dev/null 2>&1; \
+	elif [ ! -f "$(MLX)" ]; then \
+		printf "[MINILIBX]\n"; \
+		printf "⚙️  Compiling minilibx...\n"; \
+		$(MAKE) -C "$(MLX_PATH)" > /dev/null 2>&1; \
+	fi
+
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) -c $< -o $@ -g
+
 clean:
-	$(MAKE) -C $(NAME_LIBFT) clean
-	rm -f $(OBJ)
+	@printf "$(YELLOW)Cleaning object files$(NC)\n"
+	@rm -rf $(OBJDIR)
+	@$(MAKE) -C $(LIBFT_PATH) clean || true
 
-fclean:
-	$(MAKE) -C $(NAME_LIBFT) fclean
-	rm -f $(OBJ) $(TARGET)
+fclean: clean
+	@printf "$(YELLOW)Removing executable $(NAME)$(NC)\n"
+	@rm -f $(NAME)
 
 re: fclean all
 
+norm:
+	@printf "📋 Checking norm...\n"
+	@norminette $(INCLUDE_DIR)/cube3d.h
+	@norminette $(SRC_PATH)
+	@printf "✅ Check completed!\n"
 
-# Exécution du programme
-run: $(TARGET)
-	./$(TARGET)
+MAP ?= test.cub
 
-# Exécution avec valgrind (détection de fuites mémoire)
-valgrind-run: $(TARGET)
-	valgrind --leak-check=full ./$(TARGET)
+valgrind: $(NAME)
+	@printf "$(YELLOW)[INFO] Running Valgrind on $(NAME) with $(MAP)$(NC)\n"
+	@valgrind \
+		--leak-check=full \
+		--show-leak-kinds=all \
+		--track-origins=yes \
+		--track-fds=yes \
+		./$(NAME) $(MAP)
 
-
-# Affiche l'aide
-help:
-	@echo "Commandes disponibles:"
-	@echo "  make all           - Compile le programme (défaut)"
-	@echo "  make clean         - Nettoie les fichiers générés"
-	@echo "  make run           - Compile et exécute"
-	@echo "  make valgrind-run  - Exécute avec valgrind"
-	@echo "  make help          - Affiche cette aide"
-
-.PHONY: all clean fclean re run valgrind-run help
+.PHONY: all clean fclean re norm valgrind

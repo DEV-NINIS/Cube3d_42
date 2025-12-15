@@ -1,44 +1,57 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   read_cub.c                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ael-fari <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/12/15 18:33:20 by ael-fari          #+#    #+#             */
+/*   Updated: 2025/12/15 18:33:22 by ael-fari         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "../../includes/cube3d.h"
+
+int	grow_lines_array(char ***lines, int *capacity)
+{
+	char	**new;
+
+	new = ft_realloc(*lines, sizeof(char *) * (*capacity), sizeof(char *)
+			* (*capacity * 2));
+	if (!new)
+		return (0);
+	*lines = new;
+	*capacity *= 2;
+	return (1);
+}
 
 char	**read_cub_file(const char *filename, int *line_count)
 {
 	int		fd;
-	char	*line;
 	char	**lines;
-	int		count;
 	int		capacity;
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
 		return (NULL);
-	capacity = 100;
-	count = 0;
+	capacity = 16;
+	*line_count = 0;
 	lines = malloc(sizeof(char *) * capacity);
 	if (!lines)
 		return (close(fd), NULL);
-	line = get_next_line(fd);
-	while (line != NULL)
+	lines[*line_count] = get_next_line(fd);
+	while (lines[*line_count])
 	{
-		if (count >= capacity - 1)
-		{
-			capacity *= 2;
-			lines = ft_realloc(lines, sizeof(char *) * capacity / 2, 
-					sizeof(char *) * capacity);
-			if (!lines)
+		(*line_count)++;
+		if (*line_count >= capacity - 1)
+			if (!grow_lines_array(&lines, &capacity))
 				return (close(fd), NULL);
-		}
-		lines[count++] = line;
-		line = get_next_line(fd);
+		lines[*line_count] = get_next_line(fd);
 	}
-	lines[count] = NULL;
-	*line_count = count;
+	lines[*line_count] = NULL;
 	return (close(fd), lines);
 }
 
-/*
-** Libère un tableau de strings alloué par read_cub_file
-** Param: array - tableau à libérer
-*/
 void	free_string_array(char **array)
 {
 	int	i;
@@ -54,10 +67,6 @@ void	free_string_array(char **array)
 	free(array);
 }
 
-/*
-** Fonction realloc maison (si non disponible)
-** Pour éviter d'utiliser la fonction interdite realloc()
-*/
 void	*ft_realloc(void *ptr, size_t old_size, size_t new_size)
 {
 	void	*new_ptr;
@@ -85,4 +94,3 @@ void	*ft_realloc(void *ptr, size_t old_size, size_t new_size)
 	}
 	return (free(ptr), new_ptr);
 }
-
